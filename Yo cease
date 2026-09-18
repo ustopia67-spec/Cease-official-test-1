@@ -1,0 +1,192 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Player = Players.LocalPlayer
+local Character = Player.Character or Player.CharacterAdded:Wait()
+local Humanoid = Character:WaitForChild("Humanoid")
+
+local MainColorCorrection = game.Lighting:FindFirstChild("MainColorCorrection")
+
+if MainColorCorrection then
+    MainColorCorrection.TintColor = Color3.fromRGB(92, 103, 255)
+    MainColorCorrection.Contrast = 1
+
+    TweenService:Create(
+        MainColorCorrection,
+        TweenInfo.new(2.5),
+        {Contrast = 0}
+    ):Play()
+
+    TweenService:Create(
+        MainColorCorrection,
+        TweenInfo.new(80),
+        {TintColor = Color3.fromRGB(255, 255, 255)}
+    ):Play()
+end
+
+local spawner = loadstring(game:HttpGet(
+    "https://raw.githubusercontent.com/RegularVynixu/Utilities/main/Doors/Entity%20Spawner/V2/Source.lua"
+))()
+
+local entity = spawner.Create({
+    Entity = {
+        Name = "Cease",
+        Asset = "rbxassetid://12262854624",
+        HeightOffset = 0
+    },
+
+    Lights = {
+        Flicker = {
+            Enabled = true,
+            Duration = 1
+        },
+        Shatter = true,
+        Repair = false
+    },
+
+    CameraShake = {
+        Enabled = false,
+        Range = 100,
+        Values = {1.5, 20, 0.1, 1}
+    },
+
+    Movement = {
+        Speed = 60,
+        Delay = 2,
+        Reversed = false
+    },
+
+    Rebounding = {
+        Enabled = false,
+        Type = "Ambush",
+        Min = 1,
+        Max = 1,
+        Delay = 2
+    },
+
+    Damage = {
+        Enabled = false,
+        Range = 40,
+        Amount = 125
+    },
+
+    Crucifixion = {
+        Enabled = false
+    },
+
+    Death = {
+        Type = "Guiding",
+        Hints = {
+            "You died to Cease..",
+            "He appears when the room turns blue.",
+            "Stand completely still until he disappears.",
+            "Moving will kill you."
+        },
+        Cause = ""
+    }
+})
+
+local moveConnection
+local despawned = false
+local killed = false
+local lastPosition
+
+local function disconnectMovement()
+    if moveConnection then
+        moveConnection:Disconnect()
+        moveConnection = nil
+    end
+end
+
+local function killPlayer()
+    if killed or despawned then
+        return
+    end
+
+    killed = true
+    disconnectMovement()
+
+    pcall(function()
+        local stats = ReplicatedStorage.GameStats["Player_" .. Player.Name]
+        stats.Total.DeathCause.Value = "Cease"
+    end)
+
+    pcall(function()
+        local deathHint = ReplicatedStorage.RemotesFolder.DeathHint
+
+        if firesignal then
+            firesignal(
+                deathHint.OnClientEvent,
+                {
+                    "You died to Cease..",
+                    "He appears when the room turns blue.",
+                    "Stand completely still until he disappears.",
+                    "Moving will kill you."
+                },
+                "Blue"
+            )
+        end
+    end)
+
+    if Humanoid and Humanoid.Health > 0 then
+        Humanoid.Health = 0
+    end
+end
+
+entity:SetCallback("OnSpawned", function()
+    Character = Player.Character or Player.CharacterAdded:Wait()
+    Humanoid = Character:WaitForChild("Humanoid")
+
+    local root = Character:FindFirstChild("HumanoidRootPart")
+
+    if not root then
+        return
+    end
+
+    lastPosition = root.Position
+
+    disconnectMovement()
+
+    moveConnection = RunService.Heartbeat:Connect(function()
+        if killed or despawned then
+            disconnectMovement()
+            return
+        end
+
+        Character = Player.Character
+
+        if not Character then
+            return
+        end
+
+        Humanoid = Character:FindFirstChildOfClass("Humanoid")
+        root = Character:FindFirstChild("HumanoidRootPart")
+
+        if not Humanoid or not root or Humanoid.Health <= 0 then
+            return
+        end
+
+        local currentPosition = root.Position
+
+        if (currentPosition - lastPosition).Magnitude > 0.08 then
+            killPlayer()
+            return
+        end
+
+        lastPosition = currentPosition
+    end)
+end)
+
+entity:SetCallback("OnDespawning", function()
+    despawned = true
+    disconnectMovement()
+end)
+
+entity:SetCallback("OnDespawned", function()
+    despawned = true
+    disconnectMovement()
+end)
+
+entity:Run()
