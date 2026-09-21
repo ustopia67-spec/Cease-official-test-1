@@ -39,10 +39,10 @@ local entity = spawner.Create({
 
     Lights = {
         Flicker = {
-            Enabled = true,
+            Enabled = false,
             Duration = 1
         },
-        Shatter = true,
+        Shatter = false,
         Repair = false
     },
 
@@ -53,16 +53,16 @@ local entity = spawner.Create({
     },
 
     Movement = {
-        Speed = 60,
-        Delay = 2,
+        Speed = 1000,
+        Delay = 10,
         Reversed = false
     },
 
     Rebounding = {
-        Enabled = false,
+        Enabled = true,
         Type = "Ambush",
-        Min = 1,
-        Max = 1,
+        Min = 5,
+        Max = 20,
         Delay = 2
     },
 
